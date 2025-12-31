@@ -1,3 +1,3 @@
 
-
-/ssh/*
+services/dns/data/*
+services/dns/.env

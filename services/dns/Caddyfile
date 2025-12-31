@@ -1,0 +1,28 @@
+
+
+# some examples
+pihole.domain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	
+	# Force HTTPS
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	header Content-Security-Policy "upgrade-insecure-requests"
+
+	redir / /admin/ permanent
+	reverse_proxy pihole:80
+}
+
+
+# regular examples 
+subdomain.domain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	header Content-Security-Policy "upgrade-insecure-requests"
+
+	reverse_proxy http://ip:port
+}
+

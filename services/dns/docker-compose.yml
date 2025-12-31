@@ -1,0 +1,41 @@
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8080:80"
+    environment:
+      TZ: 'UTC'
+    volumes:
+      - ./pihole.toml:/etc/pihole/pihole.toml
+    restart: unless-stopped
+    networks:
+      - internal_net
+
+  caddy:
+    container_name: caddy
+    build: .
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./data/caddy_data:/data
+      - ./data/caddy_config:/config
+    restart: unless-stopped
+    networks:
+      - internal_net
+    depends_on:
+      - pihole
+
+networks:
+  internal_net:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
