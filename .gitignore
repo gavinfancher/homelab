@@ -8,6 +8,6 @@ services/dns/.env
 # Infra / Ansible
 infra/ansible/local_vars.yml
 
-# Tools - SSH keys (stored locally on Proxmox, not in repo)
-tools/ssh/*
-!tools/ssh/.gitkeep
+# Proxmox - SSH keys (stored locally on Proxmox, not in repo)
+infra/proxmox/ssh/*
+!infra/proxmox/ssh/.gitkeep

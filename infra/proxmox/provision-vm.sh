@@ -210,9 +210,9 @@ if [ "$VM_COUNT" -eq 1 ]; then
 
     # Try to find IP using ip-scan if available
     VM_IP=""
-    if [ -f ~/homelab/tools/ip-scan.py ]; then
+    if [ -f ~/homelab/infra/proxmox/ip-scan.py ]; then
         echo -e "  Scanning network..."
-        VM_IP=$(python3 ~/homelab/tools/ip-scan.py 2>/dev/null | grep -i "$VM_MAC" | awk '{print $2}')
+        VM_IP=$(python3 ~/homelab/infra/proxmox/ip-scan.py 2>/dev/null | grep -i "$VM_MAC" | awk '{print $2}')
     fi
 
     echo ""
@@ -238,7 +238,7 @@ if [ "$VM_COUNT" -eq 1 ]; then
         echo -e "  IP:       ${YELLOW}(still booting - check in a moment)${NC}"
         echo ""
         echo -e "${BLUE}Find IP with:${NC}"
-        echo "  python3 ~/homelab/tools/ip-scan.py"
+        echo "  python3 ~/homelab/infra/proxmox/ip-scan.py"
         echo "  # Look for MAC: $VM_MAC"
     fi
 
@@ -285,9 +285,9 @@ echo -e "${YELLOW}[5/5]${NC} Getting VM IP addresses..."
 echo -e "  Waiting 15s for VMs to boot..."
 sleep 15
 
-if [ -f ~/homelab/tools/ip-scan.py ]; then
+if [ -f ~/homelab/infra/proxmox/ip-scan.py ]; then
     echo -e "  Scanning network..."
-    SCAN_OUTPUT=$(python3 ~/homelab/tools/ip-scan.py 2>/dev/null)
+    SCAN_OUTPUT=$(python3 ~/homelab/infra/proxmox/ip-scan.py 2>/dev/null)
     
     for ((n=0; n<VM_COUNT; n++)); do
         IP=$(echo "$SCAN_OUTPUT" | grep -i "${CREATED_MACS[$n]}" | awk '{print $2}')
@@ -338,7 +338,7 @@ echo ""
 
 if ! $ALL_IPS_FOUND; then
     echo -e "${BLUE}Find IPs with:${NC}"
-    echo "  python3 ~/homelab/tools/ip-scan.py"
+    echo "  python3 ~/homelab/infra/proxmox/ip-scan.py"
     echo ""
 fi
 

@@ -12,7 +12,7 @@ set -e
 # Configuration
 IMAGE_DIR="/var/lib/vz/template/iso"
 STORAGE="ssd-pool"
-SSH_KEYS_DIR="$HOME/homelab/tools/ssh"
+SSH_KEYS_DIR="$HOME/homelab/infra/proxmox/ssh"
 
 # Template defaults
 DEFAULT_CORES=1
@@ -168,7 +168,7 @@ fi
 if [ "$KEY_COUNT" -eq 0 ]; then
     echo -e "${RED}No SSH keys found!${NC}"
     echo ""
-    echo "Add SSH keys to ~/homelab/tools/ssh/ or generate one:"
+    echo "Add SSH keys to ~/homelab/infra/proxmox/ssh/ or generate one:"
     echo "  ssh-keygen -t ed25519 -f ~/.ssh/pve_root"
     rm -f "$SSH_KEYS_FILE"
     exit 1
@@ -258,4 +258,4 @@ echo -e "  Template ID:    ${GREEN}$VM_ID${NC}"
 echo -e "  Default User:   ${GREEN}$CI_USER${NC}"
 echo ""
 echo -e "${BLUE}To create a VM from this template:${NC}"
-echo "  ~/homelab/tools/provision-vm.sh"
+echo "  ~/homelab/infra/proxmox/provision-vm.sh"
