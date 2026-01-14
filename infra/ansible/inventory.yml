@@ -1,0 +1,36 @@
+all:
+  children:
+    # --------------------------------------------
+    # for local VMs so no need for proxy 
+    # --------------------------------------------
+    local:
+      hosts:
+        orb:
+          ansible_host: orb@orb
+          ansible_user: gavin
+      vars:
+        ansible_ssh_common_args: ''
+
+    # --------------------------------------------
+    # for VMs on my proxmox hardware - proxy through root
+    # --------------------------------------------
+    pve:
+      hosts:
+        dns:
+          ansible_host: 10.0.0.112
+      vars:
+        ansible_user: ubuntu
+        ansible_ssh_common_args: '-o ProxyJump=root@{{ proxmox_host }}'
+
+    # --------------------------------------------
+    # for cloud VMs like aws or gcp
+    # --------------------------------------------
+    cloud:
+      hosts:
+        # aws-01-example:
+        #   ansible_host: ip or public dns (aws likes to do that)
+      vars:
+        ansible_user: ubuntu
+        ansible_ssh_common_args: ''
+
+        

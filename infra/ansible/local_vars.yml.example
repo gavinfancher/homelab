@@ -1,0 +1,6 @@
+
+# here i have an example of what my local_vars.yml looks like.
+# i didn't want to make my ip (even vpn ip) public :)
+
+proxmox_host: YOUR_PROXMOX_IP
+

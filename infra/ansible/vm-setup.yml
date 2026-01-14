@@ -1,0 +1,110 @@
+---
+- name: seting up a new vm
+  hosts: all
+  become: false
+
+  vars_files:
+    - local_vars.yml
+
+  vars:
+    tailscale_auth_key: "{{ lookup('community.general.onepassword', 'tailscale', field='auth-key', vault='Private') }}"
+
+    infra_repo:
+      enabled: true
+      url: https://github.com/gavinfancher/homelab.git
+      version: main
+      dest: /home/{{ ansible_user }}/homelab
+
+  tasks:
+    # --------------------------------------------
+    # clone infra repo (need git first)
+    # --------------------------------------------
+    - name: "install git"
+      become: true
+      ansible.builtin.apt:
+        name: git
+        state: present
+        update_cache: true
+
+    - name: "clone infra repo"
+      become: true
+      ansible.builtin.git:
+        repo: "{{ infra_repo.url }}"
+        dest: "{{ infra_repo.dest }}"
+        version: "{{ infra_repo.version }}"
+        force: true
+        accept_hostkey: true
+      when: infra_repo.enabled
+
+    - name: "make scripts executable"
+      become: true
+      ansible.builtin.file:
+        path: "{{ infra_repo.dest }}/infra/scripts/vm-setup"
+        mode: "0755"
+        recurse: true
+      when: infra_repo.enabled
+
+    # --------------------------------------------
+    # install basics (updates, curl, btop, etc.)
+    # --------------------------------------------
+    - name: "install basics"
+      become: true
+      ansible.builtin.command:
+        cmd: ./install-basics.sh
+        chdir: "{{ infra_repo.dest }}/infra/scripts/vm-setup"
+
+    # --------------------------------------------
+    # copy bashrc
+    # --------------------------------------------
+    - name: "copy bashrc"
+      become: true  
+      ansible.builtin.copy:
+        src: "{{ infra_repo.dest }}/infra/ref/.bashrc"
+        dest: "/home/{{ ansible_user }}/.bashrc"
+        remote_src: true
+        force: true
+    
+    # --------------------------------------------
+    # reboot after updates
+    # --------------------------------------------
+    - name: "reboot after updates"
+      become: true
+      ansible.builtin.reboot:
+        reboot_timeout: 30
+      when: "'local' not in group_names"
+
+    # --------------------------------------------
+    # docker install
+    # --------------------------------------------
+    - name: "install docker"
+      become: true
+      ansible.builtin.command:
+        cmd: ./install-docker.sh
+        chdir: "{{ infra_repo.dest }}/infra/scripts/vm-setup"
+      environment:
+        TARGET_USER: "{{ ansible_user }}"
+
+    # --------------------------------------------
+    # tailscale install
+    # --------------------------------------------
+    - name: "install tailscale"
+      become: true
+      ansible.builtin.command:
+        cmd: ./install-tailscale.sh
+        chdir: "{{ infra_repo.dest }}/infra/scripts/vm-setup"
+      environment:
+        TS_KEY: "{{ tailscale_auth_key }}"
+        TS_HOSTNAME: "{{ ansible_facts['hostname'] }}"
+
+    # --------------------------------------------
+    # get tailscale ip
+    # --------------------------------------------
+    - name: "get tailscale ip"
+      become: true
+      ansible.builtin.command:
+        cmd: tailscale ip -4
+      register: tailscale_ip
+
+    - name: "output tailscale ip"
+      ansible.builtin.debug:
+        msg: "ssh {{ ansible_user }}@{{ tailscale_ip.stdout }}"
