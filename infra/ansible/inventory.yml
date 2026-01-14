@@ -16,8 +16,8 @@ all:
     # --------------------------------------------
     pve:
       hosts:
-        dns:
-          ansible_host: 10.0.0.112
+        speedtest:
+          ansible_host: 10.0.0.181
       vars:
         ansible_user: ubuntu
         ansible_ssh_common_args: '-o ProxyJump=root@{{ proxmox_host }}'

@@ -14,6 +14,7 @@ if [[ -z "$TS_KEY" ]]; then
 fi
 
 sudo tailscale up \
+  --reset \
   --authkey="$TS_KEY" \
   --hostname="$TS_HOSTNAME"
 
