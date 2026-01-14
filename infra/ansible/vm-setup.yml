@@ -63,6 +63,17 @@
         dest: "/home/{{ ansible_user }}/.bashrc"
         remote_src: true
         force: true
+
+    # --------------------------------------------
+    # copy tmux.conf
+    # --------------------------------------------
+    - name: "copy tmux.conf"
+      become: true  
+      ansible.builtin.copy:
+        src: "{{ infra_repo.dest }}/infra/ref/.tmux.conf"
+        dest: "/home/{{ ansible_user }}/.tmux.conf"
+        remote_src: true
+        force: true
     
     # --------------------------------------------
     # reboot after updates

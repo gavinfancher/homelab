@@ -13,6 +13,7 @@ sudo apt-get install -y \
   curl \
   btop \
   neovim \
+  tmux \
   avahi-daemon
 
 echo "basics installed successfully"
