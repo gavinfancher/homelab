@@ -85,6 +85,15 @@
       when: "'local' not in group_names"
 
     # --------------------------------------------
+    # install uv
+    # --------------------------------------------
+    - name: "install uv"
+      become: true
+      ansible.builtin.command:
+        cmd: ./install-uv.sh
+        chdir: "{{ infra_repo.dest }}/infra/scripts/vm-setup"
+
+    # --------------------------------------------
     # docker install
     # --------------------------------------------
     - name: "install docker"
