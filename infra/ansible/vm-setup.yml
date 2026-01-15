@@ -88,7 +88,6 @@
     # install uv
     # --------------------------------------------
     - name: "install uv"
-      become: true
       ansible.builtin.command:
         cmd: ./install-uv.sh
         chdir: "{{ infra_repo.dest }}/infra/scripts/vm-setup"
