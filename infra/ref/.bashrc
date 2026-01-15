@@ -25,5 +25,5 @@ alias la="ls -A $LS_OPTIONS"
 # ---------------------------------------------
 # uv shell completion
 # ---------------------------------------------
-eval "$(uv generate-shell-completion bash)"
-eval "$(uvx --generate-shell-completion bash)"
+command -v uv &>/dev/null && eval "$(uv generate-shell-completion bash)"
+command -v uvx &>/dev/null && eval "$(uvx --generate-shell-completion bash)"

@@ -16,8 +16,8 @@ all:
     # --------------------------------------------
     pve:
       hosts:
-        speedtest:
-          ansible_host: 10.0.0.181
+        finpy-dagster:
+          ansible_host:  10.0.0.24
       vars:
         ansible_user: ubuntu
         ansible_ssh_common_args: '-o ProxyJump=root@{{ proxmox_host }}'
