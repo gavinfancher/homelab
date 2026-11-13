@@ -1,0 +1,11 @@
+# Upgrade Tailscale on every node at once.
+
+- name: Upgrade Tailscale
+  hosts: tailscale
+  become: true
+  tasks:
+    - name: Upgrade tailscale
+      ansible.builtin.apt:
+        name: tailscale
+        state: latest
+        update_cache: true

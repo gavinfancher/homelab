@@ -1,0 +1,15 @@
+# apt update, apt upgrade, reboot. pve is skipped: rebooting it kills the other VMs.
+# serial: 1 so only one machine is down at a time; the cluster keeps serving.
+
+- name: Upgrade and reboot
+  hosts: tailscale:!pve
+  serial: 1
+  become: true
+  tasks:
+    - name: Upgrade
+      ansible.builtin.apt:
+        upgrade: dist
+        update_cache: true
+
+    - name: Reboot
+      ansible.builtin.reboot:
