@@ -1,15 +1,25 @@
-# apt update, apt upgrade, reboot. pve is skipped: rebooting it kills the other VMs.
-# serial: 1 so only one machine is down at a time; the cluster keeps serving.
+# apt update, apt upgrade, reboot only if the upgrade needs it.
+# pve is skipped: rebooting it kills the other VMs.
+# serial: 1 so only one machine is down at a time; if a host fails, the play stops there.
 
 - name: Upgrade and reboot
   hosts: tailscale:!pve
   serial: 1
   become: true
   tasks:
-    - name: Upgrade
+    - name: Upgrade packages
       ansible.builtin.apt:
         upgrade: dist
         update_cache: true
+        autoremove: true
+        autoclean: true
+
+    - name: Check if a reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
 
     - name: Reboot
       ansible.builtin.reboot:
+        msg: "Rebooting for OS upgrades (ansible)"
+      when: reboot_required.stat.exists
