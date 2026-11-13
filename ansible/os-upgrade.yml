@@ -1,9 +1,9 @@
 # apt update, apt upgrade, reboot only if the upgrade needs it.
-# pve is skipped: rebooting it kills the other VMs.
+# pve is not in the inventory; upgrade it by hand (rebooting it kills the other VMs).
 # serial: 1 so only one machine is down at a time; if a host fails, the play stops there.
 
 - name: Upgrade and reboot
-  hosts: tailscale:!pve
+  hosts: all
   serial: 1
   become: true
   tasks:

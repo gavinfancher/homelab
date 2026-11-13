@@ -1,7 +1,7 @@
 # Upgrade Tailscale on every node at once.
 
 - name: Upgrade Tailscale
-  hosts: tailscale
+  hosts: all
   become: true
   tasks:
     - name: Upgrade tailscale
