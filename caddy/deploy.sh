@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Push the Caddyfile and the systemd drop-in to the proxy VM, check the config, and reload.
 #
-#   caddy/deploy.sh                     # ubuntu@10.0.4.30
+#   caddy/deploy.sh                     # ubuntu@10.0.4.61
 #   PROXY=me@10.0.4.31 caddy/deploy.sh
 #
 # Run from the Mac after any Caddyfile change. A Caddyfile that fails `caddy validate`
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
-PROXY=${PROXY:-ubuntu@10.0.4.30}
+PROXY=${PROXY:-ubuntu@10.0.4.61}
 
 ssh "$PROXY" sudo test -s /etc/caddy/cloudflare.env ||
   { echo "no token on the proxy yet; run caddy/set-token.sh first" >&2; exit 1; }

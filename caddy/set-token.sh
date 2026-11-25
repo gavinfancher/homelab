@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Store the Cloudflare API token on the proxy VM, in /etc/caddy/cloudflare.env (root, 0600).
 #
-#   caddy/set-token.sh                     # ubuntu@10.0.4.30
+#   caddy/set-token.sh                     # ubuntu@10.0.4.61
 #   PROXY=me@10.0.4.31 caddy/set-token.sh
 #
 # Run this yourself, not through an agent: it reads the token with a hidden prompt,
@@ -13,7 +13,7 @@
 # cert-manager's, so either can be revoked alone.
 set -euo pipefail
 
-PROXY=${PROXY:-ubuntu@10.0.4.30}
+PROXY=${PROXY:-ubuntu@10.0.4.61}
 
 read -rsp "Cloudflare API token: " token; echo
 [ -n "$token" ] || { echo "empty token" >&2; exit 1; }

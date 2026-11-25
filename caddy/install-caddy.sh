@@ -2,7 +2,7 @@
 # Install Caddy on the proxy VM, swapped for a build that includes the Cloudflare
 # DNS plugin.
 #
-#   caddy/install-caddy.sh                     # ubuntu@10.0.4.30
+#   caddy/install-caddy.sh                     # ubuntu@10.0.4.61
 #   PROXY=me@10.0.4.31 caddy/install-caddy.sh  # some other user/host
 #
 # Run from the Mac. Needs a Debian/Ubuntu VM you can ssh into with passwordless sudo
@@ -15,7 +15,7 @@
 # `caddy upgrade` updates it and keeps the plugin. Safe to run again.
 set -euo pipefail
 
-PROXY=${PROXY:-ubuntu@10.0.4.30}
+PROXY=${PROXY:-ubuntu@10.0.4.61}
 
 ssh "$PROXY" sudo bash -s <<'REMOTE'
 set -euo pipefail

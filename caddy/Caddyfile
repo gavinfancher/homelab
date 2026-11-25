@@ -1,52 +1,61 @@
 # Reverse proxy for the homelab's non-k8s web UIs, with one Let's Encrypt wildcard
-# for *.ad.gavinf.com. k8s apps are NOT here: *.k8s.ad.gavinf.com is a different name
+# for *.ui.gavinf.com. k8s apps are NOT here: *.k8s.ad.gavinf.com is a different name
 # (a wildcard only covers one level), served by Traefik with cert-manager's cert.
 #
-# Edit here, then push it with caddy/deploy.sh. Adding a service:
-#   1. an @name / handle pair below
-#   2. on DC01: a CNAME <name> -> proxy.ad.gavinf.com (see caddy/README.md)
+# Edit here, then push it with caddy/deploy.sh. Adding a service is ONE change:
+# an @name / handle pair in the *.ui.gavinf.com site. DC01's `*` record in the
+# ui.gavinf.com zone already sends every name here, and the wildcard cert covers it.
 #
-# Naming: a thing with only a web UI uses its own name (kvm). A host you also ssh to
-# keeps its name as an A record to its own IP, and its UI gets <host>-ui (pve-ui).
-# One level deep always, so the single wildcard covers every name.
+# Naming: one level under ui.gavinf.com, same short name as the host
+# (pve.ad.gavinf.com = the host for ssh, pve.ui.gavinf.com = its web UI).
+# Backends by IP, never a ui.gavinf.com name (caddy would connect to itself).
 
 {
 	# Uncomment to test against Let's Encrypt staging first (untrusted cert, loose limits).
 	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
 }
 
-*.ad.gavinf.com {
+# Shared by every site: how the wildcard cert is obtained.
+(cloudflare_tls) {
 	tls {
-		# DNS-01: Caddy writes TXT _acme-challenge.ad.gavinf.com in Cloudflare. The token
+		# DNS-01: Caddy writes TXT _acme-challenge.<zone> in Cloudflare. The token
 		# comes from /etc/caddy/cloudflare.env (see systemd/caddy.service.d/cloudflare.conf).
 		dns cloudflare {env.CF_API_TOKEN}
 		# Split DNS: the VM resolves through DC01, which owns ad.gavinf.com and
-		# never sees the public TXT record, so Caddy's own propagation check would wait
-		# forever. Same fix as cert-manager's --dns01-recursive-nameservers.
+		# ui.gavinf.com and never sees the public TXT record, so Caddy's own
+		# propagation check would wait forever. Same fix as cert-manager's
+		# --dns01-recursive-nameservers.
 		resolvers 1.1.1.1 8.8.8.8
 	}
+}
+
+# Proxmox UI. Self-signed HTTPS on 8006, so Caddy skips verifying the backend. By IP,
+# not name, so it still works when DC01 (a VM on this host) is down.
+# Websockets (noVNC / xterm.js consoles) are proxied automatically.
+(pve_backend) {
+	reverse_proxy https://10.0.4.10:8006 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+	}
+}
+
+*.ui.gavinf.com {
+	import cloudflare_tls
 
 	# The proxy itself: a quick "is TLS working" check before any service is wired up.
-	@proxy host proxy.ad.gavinf.com
+	@proxy host proxy.ui.gavinf.com
 	handle @proxy {
 		respond "ok" 200
 	}
 
-	# Proxmox UI (pve.ad.gavinf.com stays the host itself, for ssh). Its UI is
-	# self-signed HTTPS on 8006, so Caddy skips verifying the backend. By IP, not name,
-	# so it still works when DC01 (a VM on this host) is down.
-	# Websockets (noVNC / xterm.js consoles) are proxied automatically.
-	@pve-ui host pve-ui.ad.gavinf.com
-	handle @pve-ui {
-		reverse_proxy https://10.0.4.10:8006 {
-			transport http {
-				tls_insecure_skip_verify
-			}
-		}
+	@pve host pve.ui.gavinf.com
+	handle @pve {
+		import pve_backend
 	}
 
 	# Template for the next one (plain-HTTP backend):
-	# @name host name.ad.gavinf.com
+	# @name host name.ui.gavinf.com
 	# handle @name {
 	# 	reverse_proxy 10.0.4.X:PORT
 	# }

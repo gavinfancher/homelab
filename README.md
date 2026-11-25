@@ -15,16 +15,18 @@ The rest lives in its own repos:
 | LAN | 10.0.4.0/24, gateway 10.0.4.1 (UniFi) |
 | Proxmox (`pve`) | 10.0.4.10, also a Tailscale subnet router for the LAN |
 | k8s control plane / workers | 10.0.4.20 / .21-.23 |
-| proxy (Caddy VM) | 10.0.4.30 |
+| proxy (Caddy VM) | 10.0.4.61 |
 | DC01 (AD, DNS for `ad.gavinf.com`) | 10.0.4.200 |
 
 ## Layout
 
 ```
-caddy/    reverse proxy + Let's Encrypt wildcard for the non-k8s web UIs (*.ad.gavinf.com)
+caddy/    reverse proxy + Let's Encrypt wildcard for the non-k8s web UIs (*.ui.gavinf.com, planned; *.ad.gavinf.com today)
 ```
 
 | Name | Goes to | TLS from |
 |---|---|---|
-| `pve-ui.ad.gavinf.com` | Proxmox UI, through Caddy | Caddy, `*.ad.gavinf.com` ([caddy/](caddy/README.md)) |
+| `*.ad.gavinf.com` | hosts: AD, ssh, rdp, psql (DC01 zone) | each service's own |
+| `*.ui.gavinf.com` (planned) | web UIs through Caddy, e.g. `pve.ui.gavinf.com` (DC01 zone, one `*` record) | Caddy, `*.ui.gavinf.com` ([caddy/](caddy/README.md)) |
+| `pve-ui.ad.gavinf.com` (today, until migrated) | Proxmox UI, through Caddy | Caddy, `*.ad.gavinf.com` |
 | `*.k8s.ad.gavinf.com` | Traefik on k8s-cp | cert-manager, `*.k8s.ad.gavinf.com` (homek8s) |
