@@ -14,7 +14,7 @@ The rest lives in its own repos:
 |---|---|
 | LAN | 10.0.4.0/24, gateway 10.0.4.1 (UniFi) |
 | Proxmox (`pve`) | 10.0.4.10, also a Tailscale subnet router for the LAN |
-| k8s control plane / workers | 10.0.4.20 / .21-.23 |
+| k8s control plane / workers | 10.0.4.20 / .22-.23 (k8s-w1 .21 retired) |
 | proxy (Caddy VM) | 10.0.4.61 |
 | DC01 (AD, DNS for `ad.gavinf.com`) | 10.0.4.200 |
 
