@@ -6,7 +6,7 @@
 # [1/5] Log in to Infisical as the postgres-backup machine identity and fetch the R2 keys.
 # [2/5] pg_dumpall inside the `postgres` container (every database, plus the roles and their
 #       passwords), streamed straight into gzip: only the compressed temp file ever touches disk.
-# [3/5] Upload it as backup-YYYY-MM-DD-HH-MM.sql.gz (UTC).
+# [3/5] Upload it as backup-YYYY-MM-DDTHH:MM:SSZ.sql.gz (ISO 8601, UTC).
 # [4/5] Only once the upload worked: list the backups and delete the oldest until 24 are left.
 # [5/5] Delete the temp file. (It's also deleted if any step fails, by the EXIT trap.)
 #
@@ -58,7 +58,7 @@ export RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true
 
 KEEP=24
 PREFIX="backup-"
-NAME="${PREFIX}$(date -u +%Y-%m-%d-%H-%M).sql.gz"
+NAME="${PREFIX}$(date -u +%Y-%m-%dT%H:%M:%SZ).sql.gz"   # ISO 8601, UTC
 DEST="r2:${R2_BUCKET}"
 
 TMP="$(mktemp)"

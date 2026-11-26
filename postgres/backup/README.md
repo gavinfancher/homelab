@@ -9,7 +9,7 @@ cron (every 2h, root)  or  sudo postgres-backup
    └─ postgres-backup.sh
         ├─ infisical login (machine identity postgres-backup) ──► R2 keys from project homelab-postgres, env prod
         ├─ docker exec postgres pg_dumpall | gzip       every database, plus roles and their passwords
-        ├─ rclone copyto ──► r2:postgres-backups/backup-YYYY-MM-DD-HH-MM.sql.gz   (UTC)
+        ├─ rclone copyto ──► r2:postgres-backups/backup-YYYY-MM-DDTHH:MM:SSZ.sql.gz   (UTC)
         └─ rclone deletefile on all but the newest 24
 ```
 
@@ -132,7 +132,7 @@ What a good run prints:
 2026-11-26T18:52:04Z INF Injecting 4 Infisical secrets into your application process
 2026-11-26T18:52:04Z [2/5] dumping every database (pg_dumpall | gzip)
 2026-11-26T18:52:04Z       ✓ 100K compressed (0s)
-2026-11-26T18:52:04Z [3/5] uploading backup-2026-11-26-18-52.sql.gz to r2:postgres-backups
+2026-11-26T18:52:04Z [3/5] uploading backup-2026-11-26T18:52:04Z.sql.gz to r2:postgres-backups
 2026-11-26T18:52:05Z       ✓ uploaded (1s)
 2026-11-26T18:52:05Z [4/5] pruning: keeping the newest 24
 2026-11-26T18:52:05Z       ✓ 3 in bucket, deleted 0, 3 left (0s)
@@ -166,3 +166,4 @@ A failure prints `✗ failed at step N/5` after the error, and nothing after tha
 | 2026-11-26 | R2 bucket `postgres-backups` and a bucket-scoped Object Read & Write token. Infisical project `homelab-postgres` (id `68a41a02-3fc1-4678-af69-c2ddc76c9ff7`) with the 4 R2 keys; machine identity `postgres-backup` (universal auth, Viewer on that project). rclone 1.76.0 and the Infisical CLI installed on the host; script, cron file and env file installed. |
 | 2026-11-26 | First run uploaded (100K), but `R2_ENDPOINT` ended in `/postgres-backups`, so the object landed in a `postgres-backups/` folder and the cleanup listing failed. Endpoint fixed in Infisical and the stray folder deleted. Script now prints numbered progress steps. |
 | 2026-11-26 | Backups renamed to `backup-YYYY-MM-DD-HH-MM.sql.gz` (dropped the host name; this bucket only holds this server). The one existing backup was renamed in R2 so pruning still counts it. |
+| 2026-11-26 | Names changed to ISO 8601 UTC with seconds, `backup-YYYY-MM-DDTHH:MM:SSZ.sql.gz` (`T` between date and time, `Z` = UTC). The existing backups were renamed to match (seconds `00` where the old names had none). Colons are fine in R2 and on Linux; macOS Finder shows them as `/`, which is only cosmetic. |

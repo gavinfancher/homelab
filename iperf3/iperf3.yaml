@@ -1,0 +1,59 @@
+# iperf3 servers on homek8s: one pod on each worker, each published on that node's own IP at 5201
+# (TCP and UDP), so `iperf3 -c <node ip>` measures device → that node's VM → pod network → pod.
+# Compare with the server on the Proxmox host itself (10.0.4.10). See README.md.
+#
+#   kubectl apply -f iperf3/iperf3.yaml
+#   kubectl -n iperf3 get pods -o wide        # one Running per node
+#   kubectl delete -f iperf3/iperf3.yaml
+#
+# Applied by hand, not Argo CD: it won't change.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iperf3
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: iperf3
+  namespace: iperf3
+spec:
+  selector:
+    matchLabels: { app: iperf3 }
+  template:
+    metadata:
+      labels: { app: iperf3 }
+    spec:
+      automountServiceAccountToken: false
+      # Workers only (k8s-w2, k8s-w3): k8s-cp's CriticalAddonsOnly taint keeps app pods off it,
+      # and that's where the apps you'd be testing run anyway.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534 # nobody: iperf3 needs no privileges, and 5201 is above 1024
+        runAsGroup: 65534
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: iperf3
+          image: mlabbe/iperf3:3.19.1-r1
+          command: ["iperf3", "--server", "--interval", "0"] # --interval 0: no per-second log spam
+          ports:
+            # hostPort: the node itself answers on 5201 and forwards to this pod (k3s's portmap).
+            # That's what makes `iperf3 -c 10.0.4.22` reach the pod on k8s-w2.
+            - { name: tcp, containerPort: 5201, hostPort: 5201, protocol: TCP }
+            - { name: udp, containerPort: 5201, hostPort: 5201, protocol: UDP }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp } # iperf3 makes a scratch file in /tmp for each test
+          resources:
+            # No CPU limit on purpose: a cap would throttle the test and you'd measure the cap.
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 128Mi }
+          readinessProbe:
+            tcpSocket: { port: 5201 }
+            periodSeconds: 30
+      volumes:
+        - name: tmp
+          emptyDir: { medium: Memory, sizeLimit: 64Mi }

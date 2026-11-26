@@ -24,6 +24,7 @@ The rest lives in its own repos:
 pve/      fixes for the Proxmox host itself (no-subscription pop-up)
 caddy/    the front door for every web UI: *.ui.gavinf.com, Let's Encrypt wildcard, k8s apps handed to Traefik
 speedtest/ speed.ui.gavinf.com, a browser speed test on homek8s (applied by hand)
+iperf3/   command-line speed tests: a server on pve and one per k8s worker
 ```
 
 | Name | Goes to | TLS from |
