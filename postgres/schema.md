@@ -19,7 +19,7 @@ All tables live in `public`.
 | `vm_events` | `id` bigserial, `vm` text, `at` timestamptz default `now()`, `level` text default `'info'`, `message` text | PK `id`; FK `vm` → `vms(name)` on delete cascade; `level in ('info','warn','error')`; index `(vm, id)` |
 | `sessions` | `token_hash` text, `expires` timestamptz | PK `token_hash` |
 
-#### `wishly` (owner `wishly_schema`)
+#### `wishly` (owner `wishly`)
 
 | Table | Columns | Keys / constraints |
 |---|---|---|

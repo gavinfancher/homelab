@@ -1,0 +1,3 @@
+# /etc/cron.d/postgres-backup: every 2 hours, on the hour.
+# Must be owned by root and not group/world writable, or cron ignores it.
+0 */2 * * * root /usr/local/bin/postgres-backup >> /var/log/postgres-backup.log 2>&1

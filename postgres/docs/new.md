@@ -19,10 +19,15 @@ creat the database
 ```
 create database <db_name> owner <db_owner_role_name>;
 revoke connect on database <db_name> from public;
-grant connect on database <db_name> to <db_owner_role_name>;
+grant connect on database <db_name> to <db_owner_role_name>, backup;
 ```
 - `<db_name>` is the desired database name
 - `<db_owner_role_name>` is the specific role that you would like to own the database
+
+check the role can log in (`rolcanlogin` should be true, or the app gets `role "<role_name>" is not permitted to log in`):
+```
+select rolname, rolcanlogin from pg_roles where rolname = '<role_name>';
+```
 
 the `revoke connect` command remvoes it from the public schema so that only the superuser can see/edit it. the `grant connect` command allows specified roles to see/edit the database.
 

@@ -7,7 +7,7 @@ Shared Postgres instance for homelab apps (easydocs, homecloud, wishly).
 - **Image:** `postgres:18.6`
 - **Data:** named volume `prod_pgdata` → `/var/lib/postgresql` (`PGDATA=/var/lib/postgresql/18/docker`)
 - **Port:** `5432` published on all interfaces
-- **Backups:** every 2h to S3, kept 30 days, from a CronJob on homek8s. See [backup/](backup/README.md)
+- **Backups:** every 2h to Cloudflare R2 (`pg_dumpall`, newest 24 kept), from cron on this host. See [backup/](backup/README.md)
 
 ```sh
 ssh postgres.ad.gavinf.com
@@ -36,14 +36,17 @@ host alters initialization:
 
 Every app role, database, and table was added after initialization, by hand or by the apps.
 
-## Live structure (as of 2026-11-23)
+## Live structure (as of 2026-11-26)
 
 ### Roles
+
+One role per app, owning its own database: the same pattern for every app.
 
 | Role | Notes |
 |---|---|
 | `postgres` | superuser |
 | `easydocs` | owns `easydocs` db |
 | `homecloud` | owns `homecloud` db |
-| `wishly_schema` | owns `wishly` db and its `public` schema |
-| `wishly_app` | `CONNECT` on `wishly`; table access via membership in `pg_read_all_data` + `pg_write_all_data` (no direct grants) |
+| `wishly` | owns `wishly` db, its `public` schema and tables (was `wishly_app` + `wishly_schema` until 2026-11-26, see wishly `infra/sql/migrate-one-role.sql`) |
+| `nextup` | owns `nextup` db (2026-11-25) |
+| `backup` | `CONNECT` on each app db, for the 2-hourly S3 backup CronJob. Grant it on every new app db |
