@@ -49,4 +49,3 @@ One role per app, owning its own database: the same pattern for every app.
 | `homecloud` | owns `homecloud` db |
 | `wishly` | owns `wishly` db, its `public` schema and tables (was `wishly_app` + `wishly_schema` until 2026-11-26, see wishly `infra/sql/migrate-one-role.sql`) |
 | `nextup` | owns `nextup` db (2026-11-25) |
-| `backup` | `CONNECT` on each app db, for the 2-hourly S3 backup CronJob. Grant it on every new app db |

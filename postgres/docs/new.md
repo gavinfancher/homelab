@@ -19,7 +19,7 @@ creat the database
 ```
 create database <db_name> owner <db_owner_role_name>;
 revoke connect on database <db_name> from public;
-grant connect on database <db_name> to <db_owner_role_name>, backup;
+grant connect on database <db_name> to <db_owner_role_name>;
 ```
 - `<db_name>` is the desired database name
 - `<db_owner_role_name>` is the specific role that you would like to own the database
