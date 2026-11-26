@@ -1,0 +1,135 @@
+# speed.ui.gavinf.com: an OpenSpeedTest page for testing a device's connection to the homelab
+# (download, upload, ping, jitter, run in the browser). Static nginx, no database, no state.
+#
+# Not an Argo app: it won't change, so it's applied once by hand.
+#   kubectl apply -f speedtest/speedtest.yaml
+#   kubectl delete -f speedtest/speedtest.yaml   # removes all of it
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: speedtest
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: speedtest
+  namespace: speedtest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: speedtest
+  template:
+    metadata:
+      labels:
+        app: speedtest
+    spec:
+      automountServiceAccountToken: false # it never talks to the Kubernetes API
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101 # the image's `nginx` user
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: speedtest
+          # Pinned: bump on purpose. v2.0.8 (Oct 2026); v2.0.9 was days old when this was written.
+          image: openspeedtest/latest:v2.0.8
+          ports:
+            - name: http
+              containerPort: 3000 # plain HTTP; Traefik terminates TLS with the *.k8s wildcard
+          livenessProbe:
+            httpGet: { path: /, port: http }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            periodSeconds: 10
+          # No CPU limit: a throttled pod would make the test measure the throttle, not the network.
+          resources:
+            requests: { cpu: 50m, memory: 32Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          # nginx writes its pid and request-body temp files here; everything else is read-only.
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: nginx-cache, mountPath: /var/cache/nginx }
+      volumes:
+        - name: tmp
+          emptyDir: { medium: Memory, sizeLimit: 64Mi }
+        - name: nginx-cache
+          emptyDir: { medium: Memory, sizeLimit: 128Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: speedtest
+  namespace: speedtest
+spec:
+  selector:
+    app: speedtest
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+# LAN and Tailscale only. speed.ui.gavinf.com resolves (DC01) to Caddy (10.0.4.61), which hands it to Traefik;
+# Traefik presents its *.ui.gavinf.com cert. No DNS record and no tls section needed.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: speedtest
+  namespace: speedtest
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: speed.ui.gavinf.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: speedtest
+                port:
+                  number: 3000
+---
+# The upload test POSTs to a static file. nginx answers that with an immediate "200 OK" (the image turns the
+# 405 into a 200) without reading the body. Direct, the browser keeps sending anyway; through Traefik, that
+# early 200 goes straight back, Traefik stops reading, and the browser's timer stops after a fraction of the
+# data: uploads showed ~19 Gbps. Buffering makes Traefik receive each upload completely before passing it on,
+# so the timer covers the real transfer from the device. Applied to /upload only: downloads stay unbuffered.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: buffer-uploads
+  namespace: speedtest
+spec:
+  buffering:
+    maxRequestBodyBytes: 40000000 # just over nginx's client_max_body_size (35m); the page sends smaller chunks
+    memRequestBodyBytes: 40000000 # keep it in memory: a disk spill would make the test measure the disk
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: speedtest-upload
+  namespace: speedtest
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: speedtest-buffer-uploads@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: speed.ui.gavinf.com
+      http:
+        paths:
+          - path: /upload # more specific than the main Ingress's "/", so Traefik routes uploads here
+            pathType: Prefix
+            backend:
+              service:
+                name: speedtest
+                port:
+                  number: 3000

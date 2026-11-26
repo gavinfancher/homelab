@@ -5,7 +5,7 @@ The base layer of my homelab: the Proxmox host and the small pieces of infrastru
 The rest lives in its own repos:
 
 - [homecloud](https://github.com/gavinfancher/homecloud): a web page that provisions VMs on the Proxmox host
-- [homek8s](https://github.com/gavinfancher/homek8s): the k3s cluster, its apps, and `*.k8s.ad.gavinf.com`
+- [homek8s](https://github.com/gavinfancher/homek8s): the k3s cluster and its apps (served as `*.ui.gavinf.com` through Caddy)
 - ad-at-home: DC01 and the `ad.gavinf.com` AD / DNS / DHCP
 
 ## Network
@@ -21,12 +21,12 @@ The rest lives in its own repos:
 ## Layout
 
 ```
-caddy/    reverse proxy + Let's Encrypt wildcard for the non-k8s web UIs (*.ui.gavinf.com, planned; *.ad.gavinf.com today)
+pve/      fixes for the Proxmox host itself (no-subscription pop-up)
+caddy/    the front door for every web UI: *.ui.gavinf.com, Let's Encrypt wildcard, k8s apps handed to Traefik
+speedtest/ speed.ui.gavinf.com, a browser speed test on homek8s (applied by hand)
 ```
 
 | Name | Goes to | TLS from |
 |---|---|---|
 | `*.ad.gavinf.com` | hosts: AD, ssh, rdp, psql (DC01 zone) | each service's own |
-| `*.ui.gavinf.com` (planned) | web UIs through Caddy, e.g. `pve.ui.gavinf.com` (DC01 zone, one `*` record) | Caddy, `*.ui.gavinf.com` ([caddy/](caddy/README.md)) |
-| `pve-ui.ad.gavinf.com` (today, until migrated) | Proxmox UI, through Caddy | Caddy, `*.ad.gavinf.com` |
-| `*.k8s.ad.gavinf.com` | Traefik on k8s-cp | cert-manager, `*.k8s.ad.gavinf.com` (homek8s) |
+| `*.ui.gavinf.com` | every web UI, through Caddy: `pve.ui`, and k8s apps (`nextup.ui`, `argocd.ui`, ...) handed to Traefik (DC01 zone, one `*` record) | Caddy, `*.ui.gavinf.com` ([caddy/](caddy/README.md)) |

@@ -1,15 +1,17 @@
-## https for the non-k8s web UIs (`*.ui.gavinf.com`) with caddy + let's encrypt
+## https for every homelab web UI (`*.ui.gavinf.com`) with caddy + let's encrypt
 
-> **status:** migrating. the Caddyfile now serves both `*.ui.gavinf.com` (new) and `*.ad.gavinf.com`
-> (old, `pve-ui.ad.gavinf.com`), sharing one `tls` snippet; that's migration step 1. the DC01 zone,
-> tailscale route and cleanup are a click-by-click checklist in ad-at-home `docs/ui-zone-https-gui.md`.
+> **status: live (2026-11-25).** caddy has its `*.ui.gavinf.com` cert, DC01 has the `ui.gavinf.com` zone and
+> tailscale routes it. caddy is the front door for **every** web UI: non-k8s ones directly, k8s apps handed to
+> traefik. the old `*.ad.gavinf.com` and `*.k8s.ad.gavinf.com` web names are retired. the click-by-click
+> setup record is ad-at-home `docs/ui-zone-https-gui.md`.
 
 proxmox (and anything else with a web UI that isn't in k8s) gets a real, browser-trusted cert at a
 name like `pve.ui.gavinf.com`, instead of `https://10.0.4.10:8006` and a self-signed warning.
 
 one small VM runs caddy. it holds a single `*.ui.gavinf.com` wildcard from let's encrypt and reverse
-proxies each name to its backend. k8s apps stay where they are: `*.k8s.ad.gavinf.com` is served by
-traefik with cert-manager's cert (homek8s `docs/tls.md`).
+proxies each name to its backend. k8s apps (nextup, argocd, grafana, speed, ...) use the same names: any
+name caddy doesn't serve itself goes to traefik on homek8s, which routes it to the matching Ingress, so a
+new k8s app needs only an Ingress host `<name>.ui.gavinf.com` (homek8s `docs/tls.md`).
 
 ### the idea: hosts and web UIs live in two different zones
 
@@ -29,7 +31,9 @@ browser ── pve.ui.gavinf.com? ──► DC01 DNS, zone ui.gavinf.com: * A 10
    └── https ──► caddy (VM "proxy", 10.0.4.61)  cert: *.ui.gavinf.com
                    ├─ pve.ui.gavinf.com    ──► https://10.0.4.10:8006 (self-signed, not verified)
                    ├─ proxy.ui.gavinf.com  ──► "ok" (tls smoke test)
-                   └─ anything else        ──► connection closed
+                   └─ anything else        ──► traefik on k8s-w2 / k8s-w3 / k8s-cp (.22, .23, .20)
+                                                https, SNI + Host = the requested name; traefik shows its own
+                                                *.ui.gavinf.com cert (cert-manager) and caddy verifies it
 
 caddy ──(cloudflare api token)──► TXT _acme-challenge.ui.gavinf.com in cloudflare ──► let's encrypt checks it
 ```
@@ -145,9 +149,12 @@ all three run from the mac over ssh, as `ubuntu@10.0.4.61` by default. a differe
 
 ### adding a service
 
-one change: a `@name` / `handle` pair in the Caddyfile, then `caddy/deploy.sh`. the wildcard record
-already sends every `ui.gavinf.com` name to caddy, and the wildcard cert already covers it. a name
-with no `handle` gets its connection closed.
+**a k8s app: nothing here.** give its Ingress the host `<name>.ui.gavinf.com`; caddy already hands every name
+it doesn't serve itself to traefik. a name no Ingress claims gets traefik's 404.
+
+**anything else:** one change: a `@name` / `handle` pair in the Caddyfile, then `caddy/deploy.sh`. the
+wildcard record already sends every `ui.gavinf.com` name to caddy, and the wildcard cert already covers it.
+explicit `handle`s always win over the traefik catch-all.
 
 example: pgAdmin for the existing postgres box. `postgres.ad.gavinf.com` stays exactly as it is, so
 `psql` and ssh keep going direct. the UI is `postgres.ui.gavinf.com`:
@@ -169,9 +176,10 @@ curl -sS -o /dev/null -w '%{http_code} verify=%{ssl_verify_result}\n' https://po
 caddy only carries web traffic, so its cert never covers `psql`, ssh or rdp. those keep whatever TLS
 they have on their own.
 
-### migration from `ad.gavinf.com`
+### migration from `ad.gavinf.com` (done 2026-11-25)
 
-what's live now: `*.ad.gavinf.com` site in the Caddyfile, `proxy` A + `pve-ui` CNAME in `ad.gavinf.com`.
+kept as a record. the `*.ad.gavinf.com` site never ran on this VM; `*.k8s.ad.gavinf.com` (DC01 `*.k8s` record,
+traefik's `*.k8s` cert, the old Ingress hosts) was retired the same day, after every app had its `.ui` name.
 
 1. Caddyfile: pull the `tls` block into a snippet, add a `*.ui.gavinf.com` site next to the existing
    one (`proxy` smoke test, `pve`, catch-all `abort`), both importing the snippet. deploy, wait for the
@@ -191,8 +199,19 @@ what's live now: `*.ad.gavinf.com` site in the Caddyfile, `proxy` A + `pve-ui` C
 - upgrading caddy: `ssh ubuntu@10.0.4.61 sudo caddy upgrade` (re-downloads with the same plugins), then
   `sudo systemctl restart caddy`. `apt upgrade` updates the diverted stock binary, which isn't the one in use.
 - rotating the token: make the new one, `caddy/set-token.sh`, then revoke the old one in cloudflare.
-- the proxy is now a single point of failure for these UIs. proxmox is still at `https://10.0.4.10:8006`
-  if the VM is down.
+- the proxy is now a single point of failure for every web UI, k8s apps included (the k8s control plane
+  no longer is: caddy skips a node that doesn't answer). proxmox is still at `https://10.0.4.10:8006`, and
+  a k8s app can be reached straight at traefik with `curl --resolve <name>.ui.gavinf.com:443:10.0.4.22`.
+- **the caddy VM must never accept tailscale subnet routes.** it's on the LAN it would route to. on
+  2026-11-25 tailscale restarted (an auto-update) with `--accept-routes` on, put `10.0.4.0/24` via
+  `tailscale0` in front of the LAN route, and the VM's replies to LAN hosts went into the tunnel: every
+  `*.ui` site went dark while caddy itself was fine. fixed for good with
+  `tailscale set --accept-routes=false` (a setting, so it survives restarts). check:
+  `ssh ubuntu@10.0.4.61 'ip route show table 52 | grep 10.0.4'` must print nothing.
+- **after a network blip, k8s sites hanging but `pve.ui` fine:** caddy can hold stale connections to
+  traefik. `ssh ubuntu@10.0.4.61 sudo systemctl restart caddy`.
+- **k8s site returns traefik's 404 through caddy but 200 straight to traefik:** the `header_up Host
+  {http.request.host}` line is missing. with an https upstream caddy sends the upstream's address as Host.
 - stuck cert: `sudo journalctl -u caddy` on the VM. "timed out waiting for record to fully propagate"
   means the `resolvers` line is missing; a 403 / "invalid request headers" from cloudflare means the
   token is wrong or can't edit the `gavinf.com` zone.
