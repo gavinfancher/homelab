@@ -9,6 +9,15 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
     ports:
       - "5432:5432"
+    # Docker gives every container a 64MB /dev/shm. Postgres puts its dynamic shared memory
+    # there (parallel queries, parallel index builds), and a big enough query fails with
+    # `could not resize shared memory segment ... No space left on device`. 256MB is plenty
+    # for this box (15GB RAM) and is only used while those queries run. See README.
+    shm_size: 256mb
+    # `docker stop` sends the image's stop signal (SIGINT = Postgres "fast" shutdown: disconnect
+    # clients, write a checkpoint, exit), then SIGKILLs after 10s by default. A kill mid-checkpoint
+    # means crash recovery on the next start. 60s lets the checkpoint finish. See README.
+    stop_grace_period: 60s
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:

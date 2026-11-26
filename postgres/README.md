@@ -18,6 +18,39 @@ docker exec -it postgres psql -U postgres
 > `compose.yaml.bak-20261022213827` on the host only differs in the old mount path
 > (`/var/lib/postgresql-1/data`), changed on 2026-10-22 for the PG18 data layout.
 
+## Container settings, and why
+
+Two settings in `compose.yaml` exist only because Postgres runs in Docker (added 2026-11-26):
+
+- **`shm_size: 256mb`.** Docker gives every container a 64MB `/dev/shm`. Postgres keeps its *dynamic*
+  shared memory there: the scratch space parallel workers share during a parallel query or a parallel
+  `create index`. When a big query needs more than 64MB of it, the query fails with
+  `could not resize shared memory segment "/PostgreSQL.…" to … bytes: No space left on device`.
+  Nothing today is that big, but it's a limit that doesn't exist outside Docker, and the error is
+  confusing when it does show up. 256MB is a small slice of the VM's 15GB, and it's only used while
+  such a query runs. (`shared_buffers`, the main cache, doesn't live in `/dev/shm` and isn't affected.)
+  Check it: `docker exec postgres df -h /dev/shm`.
+- **`stop_grace_period: 60s`.** `docker stop` (and `docker compose down`, a host reboot, an image
+  upgrade) sends the image's stop signal, `SIGINT`. To Postgres that means a "fast" shutdown: disconnect
+  every client, write a final checkpoint, exit cleanly. But Docker only waits 10 seconds by default, then
+  sends `SIGKILL`. If the checkpoint is still writing, Postgres is killed mid-way and has to do crash
+  recovery (replaying the WAL) on the next start: no data lost, but a slower start and a scarier log.
+  60s gives the checkpoint time to finish; a clean stop still takes only a second or two.
+  Check it: `docker inspect postgres --format '{{.Config.StopTimeout}}'` → `60`.
+
+## Changing the compose file
+
+Edit `compose.yaml` here, commit, then on the host:
+
+```sh
+scp compose.yaml ubuntu@postgres.ad.gavinf.com:~/prod/compose.yaml
+ssh ubuntu@postgres.ad.gavinf.com 'cd ~/prod && docker compose up -d --wait'
+```
+
+`up -d` recreates the container when its settings changed. The data is on the volume, so nothing is
+lost, but **every app loses its database for the few seconds of the restart**. Their pools reconnect on
+their own. Do it when a reminder send isn't due (wishly sends from 9:00 Eastern).
+
 ## What a fresh `docker compose up` gives you
 
 Only the `postgres` superuser and an empty `postgres` database. Nothing else on the
