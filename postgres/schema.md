@@ -33,7 +33,7 @@ All tables live in `public`.
 | App | Roles + DB | Tables |
 |---|---|---|
 | homecloud | `homecloud/infra/sql/roles.sql` | created by the backend on startup (`backend/app/db.py`, `CREATE TABLE IF NOT EXISTS`) |
-| wishly | `wishly/infra/sql/roles.sql` (roles, db, grants) | `wishly/infra/sql/schema.sql` |
+| wishly | `wishly/infra/sql/roles.sql` (one `wishly` role, owns the db) | `wishly/infra/sql/schema.sql`, applied as `wishly` |
 | easydocs | **no setup scripts found locally** | **unknown**. Take a `pg_dump --schema-only -d easydocs` from the live server before getting rid of it |
 
 To make a fresh DB set itself up, those scripts could be mounted into

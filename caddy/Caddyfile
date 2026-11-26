@@ -74,6 +74,12 @@
 		import pve_backend
 	}
 
+	# KVM UI. Plain HTTP on the default port 80 (nothing on 443); Caddy supplies the cert.
+	@kvm host kvm.ui.gavinf.com
+	handle @kvm {
+		reverse_proxy 10.0.4.230
+	}
+
 	# Template for the next non-k8s one (plain-HTTP backend). A k8s app needs nothing here.
 	# @name host name.ui.gavinf.com
 	# handle @name {

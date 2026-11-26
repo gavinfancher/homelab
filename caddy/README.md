@@ -30,6 +30,7 @@ browser ── pve.ui.gavinf.com? ──► DC01 DNS, zone ui.gavinf.com: * A 10
    │
    └── https ──► caddy (VM "proxy", 10.0.4.61)  cert: *.ui.gavinf.com
                    ├─ pve.ui.gavinf.com    ──► https://10.0.4.10:8006 (self-signed, not verified)
+                   ├─ kvm.ui.gavinf.com    ──► http://10.0.4.230 (plain http, port 80)
                    ├─ proxy.ui.gavinf.com  ──► "ok" (tls smoke test)
                    └─ anything else        ──► traefik on k8s-w2 / k8s-w3 / k8s-cp (.22, .23, .20)
                                                 https, SNI + Host = the requested name; traefik shows its own
